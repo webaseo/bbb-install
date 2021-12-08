@@ -440,9 +440,9 @@ need_x64() {
 }
 
 wait_443() {
-  echo "Waiting for port 443 to clear "
+  echo "Waiting for port 8443 to clear "
   # netstat fields 4 and 6 are Local Address and State
-  while netstat -ant | awk '{print $4, $6}' | grep TIME_WAIT | grep -q ":443"; do sleep 1; echo -n '.'; done
+  while netstat -ant | awk '{print $4, $6}' | grep TIME_WAIT | grep -q ":8443"; do sleep 1; echo -n '.'; done
   echo
 }
 
@@ -486,12 +486,12 @@ get_IP() {
 
     wait_443
 
-    nc -l -p 443 > /dev/null 2>&1 &
+    nc -l -p 8443 > /dev/null 2>&1 &
     nc_PID=$!
     sleep 1
     
      # Check if we can reach the server through it's external IP address
-     if nc -zvw3 "$external_ip" 443  > /dev/null 2>&1; then
+     if nc -zvw3 "$external_ip" 8443  > /dev/null 2>&1; then
        INTERNAL_IP=$IP
        IP=$external_ip
        echo 
@@ -841,8 +841,8 @@ install_ssl() {
       cat <<HERE > /etc/nginx/sites-available/bigbluebutton
 server_tokens off;
 server {
-  listen 80;
-  listen [::]:80;
+  listen 8080;
+  listen [::]:8080;
   server_name $HOST;
 
   access_log  /var/log/nginx/bigbluebutton.access.log;
@@ -876,16 +876,16 @@ HERE
 server_tokens off;
 
 server {
-  listen 80;
-  listen [::]:80;
+  listen 8080;
+  listen [::]:8080;
   server_name $HOST;
   
   return 301 https://\$server_name\$request_uri; #redirect HTTP to HTTPS
 
 }
 server {
-  listen 443 ssl http2;
-  listen [::]:443 ssl http2;
+  listen 8443 ssl http2;
+  listen [::]:8443 ssl http2;
   server_name $HOST;
 
     ssl_certificate /etc/letsencrypt/live/$HOST/fullchain.pem;
@@ -1000,13 +1000,13 @@ configure_coturn() {
 
     <bean id="turn0" class="org.bigbluebutton.web.services.turn.TurnServer">
         <constructor-arg index="0" value="$COTURN_SECRET"/>
-        <constructor-arg index="1" value="turns:$COTURN_HOST:443?transport=tcp"/>
+        <constructor-arg index="1" value="turns:$COTURN_HOST:8443?transport=tcp"/>
         <constructor-arg index="2" value="86400"/>
     </bean>
     
     <bean id="turn1" class="org.bigbluebutton.web.services.turn.TurnServer">
         <constructor-arg index="0" value="$COTURN_SECRET"/>
-        <constructor-arg index="1" value="turn:$COTURN_HOST:443?transport=tcp"/>
+        <constructor-arg index="1" value="turn:$COTURN_HOST:8443?transport=tcp"/>
         <constructor-arg index="2" value="86400"/>
     </bean>
 
@@ -1048,7 +1048,7 @@ install_coturn() {
 
   cat <<HERE > /etc/turnserver.conf
 listening-port=3478
-tls-listening-port=443
+tls-listening-port=8443
 
 listening-ip=$IP
 relay-ip=$IP
@@ -1099,7 +1099,7 @@ HERE
 }
 HERE
 
-  # Eanble coturn to bind to port 443 with CAP_NET_BIND_SERVICE
+  # Eanble coturn to bind to port 8443 with CAP_NET_BIND_SERVICE
   mkdir -p /etc/systemd/system/coturn.service.d
   rm -rf /etc/systemd/system/coturn.service.d/ansible.conf      # Remove previous file 
   cat > /etc/systemd/system/coturn.service.d/override.conf <<HERE
@@ -1149,4 +1149,3 @@ HERE
 }
 
 main "$@" || exit 1
-
